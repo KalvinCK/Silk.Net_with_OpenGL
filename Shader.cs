@@ -7,15 +7,22 @@ namespace MyGame
     {
         private uint Handle;
         private GL Gl { get => Program.Gl; }
-
-        public Shader(string vertexPath, string fragmentPath)
+        private Dictionary<string, int> uniformsLocation;
+        public Shader(string vertexPath_orCode, string fragmentPath_orCode)
         {
-
             uint vert = 0; 
             uint frag = 0;
 
-            vert = LoadShader(ShaderType.VertexShader, File.ReadAllText(vertexPath));
-            frag = LoadShader(ShaderType.FragmentShader, File.ReadAllText(fragmentPath));
+            if(vertexPath_orCode.Substring(0, 1) == "#" && vertexPath_orCode.Contains("version"))
+            {
+                vert = LoadShader(ShaderType.VertexShader, vertexPath_orCode);
+                frag = LoadShader(ShaderType.FragmentShader, fragmentPath_orCode);
+            }
+            else
+            {
+                vert = LoadShader(ShaderType.VertexShader, File.ReadAllText(vertexPath_orCode));
+                frag = LoadShader(ShaderType.FragmentShader, File.ReadAllText(fragmentPath_orCode));
+            }
 
 
             Handle = Gl.CreateProgram();
@@ -32,6 +39,38 @@ namespace MyGame
 
             Gl.DeleteShader(vert);
             Gl.DeleteShader(frag);
+
+            uniformsLocation = new Dictionary<string, int>();
+            ProcessAllUniforms();
+
+        }
+        /// <summary>
+        /// fazer chamadas no opengl é um pouco pesado, por isso vamos armazenar todos os identificadores dos uniforms 
+        /// em um dicionario assim tornando as mais performatico 
+        /// </summary>
+        private void ProcessAllUniforms()
+        {
+            Gl.GetProgram(Handle, GLEnum.ActiveUniforms, out var numversUniforms);
+
+            for(uint i = 0; i < numversUniforms; i++)
+            {
+                var name = Gl.GetActiveUniform(Handle, i, out int size, out _);
+
+                if(size == 1)
+                {
+                    var location = Gl.GetUniformLocation(Handle, name);
+                    uniformsLocation.Add(name, location);
+                }
+                else
+                {
+                    for(int j = 0; j < size; j++)
+                    {
+                        var arrayName = name.Substring(0, name.Length - 2) + j + "]";
+                        var location = Gl.GetUniformLocation(Handle, arrayName);
+                        uniformsLocation.Add(arrayName, location);
+                    }
+                }
+            }
         }
         private uint LoadShader(ShaderType type, string shaderCode)
         {
@@ -57,45 +96,37 @@ namespace MyGame
             Gl.DeleteProgram(Handle);
         }
         // uniforms
-        private int GetUniform(string name)
-        {
-            int location = Gl.GetUniformLocation(Handle, name);
-            if (location == -1)
-                throw new Exception($"O uniform {name} não foi encontado no Programa shader.");
-
-            return location;
-        }
         public void SetUniform(string name, bool value)
         {
-            Gl.Uniform1(GetUniform(name), value ? 1 : 0);
+            Gl.Uniform1(uniformsLocation[name], value ? 1 : 0);
         }
         public void SetUniform(string name, int value)
         {
-            Gl.Uniform1(GetUniform(name), value);
+            Gl.Uniform1(uniformsLocation[name], value);
         }
         public void SetUniform(string name, float value)
         {
-            Gl.Uniform1(GetUniform(name), value);
+            Gl.Uniform1(uniformsLocation[name], value);
         }
         public void SetUniform(string name, Vector2 value)
         {
-            Gl.Uniform2(GetUniform(name), value.X, value.Y);
+            Gl.Uniform2(uniformsLocation[name], value.X, value.Y);
         }
         public void SetUniform(string name, Vector3 value)
         {
-            Gl.Uniform3(GetUniform(name), value.X, value.Y, value.Z);
+            Gl.Uniform3(uniformsLocation[name], value.X, value.Y, value.Z);
         }
         public void SetUniform(string name, Vector4 value)
         {
-            Gl.Uniform4(GetUniform(name), ref value);
+            Gl.Uniform4(uniformsLocation[name], ref value);
         }
         public void SetUniform(string name, System.Drawing.Color value)
         {
-            Gl.Uniform4(GetUniform(name), new Vector4(value.R / 255.0f, value.G / 255.0f, value.B / 255.0f, value.A / 255.0f) );
+            Gl.Uniform4(uniformsLocation[name], new Vector4(value.R / 255.0f, value.G / 255.0f, value.B / 255.0f, value.A / 255.0f) );
         }
         public unsafe void SetUniform(string name, Matrix4x4 value)
         {
-            Gl.UniformMatrix4(GetUniform(name), 1, false, (float*)&value);
+            Gl.UniformMatrix4(uniformsLocation[name], 1, false, (float*)&value);
         }
     }
 }

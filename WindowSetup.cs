@@ -15,6 +15,8 @@ namespace MyGame
             options.Position = new Vector2D<int>(100, 100);
             options.VideoMode = VideoMode.Default;
             options.WindowBorder = WindowBorder.Resizable;
+            options.API = GraphicsAPI.Default;
+            options.VSync = true;
 
         }
     }

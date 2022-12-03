@@ -21,13 +21,12 @@ namespace MyGame
         private static unsafe void Main()
         {
             
-
             window.Load += delegate
             {
                 IInputContext input = window.CreateInput();
                 _keyboard = input.Keyboards.FirstOrDefault()!;
 
-                bool FullScreen = false, vsync = false;
+                bool FullScreen = false, vsync = true;
 
                 if (_keyboard != null)
                 {
@@ -64,8 +63,7 @@ namespace MyGame
                     };
                 }
                 _gl = GL.GetApi(window);
-                _gl.ClearColor(System.Drawing.Color.Black);
-                _gl.Enable(EnableCap.DepthTest);
+                InitStatesGL();
 
                 setup = new Game();
             };
@@ -78,8 +76,6 @@ namespace MyGame
             window.Update += delegate(double deltaTime)
             {
                 Clock.TimerUpdateFrame(deltaTime);
-
-                Console.WriteLine(Clock.FramesPerSecond);
 
                 Camera.UpdatePosition();
 
@@ -98,6 +94,22 @@ namespace MyGame
             };
 
             window.Run();
+        }
+        private static void InitStatesGL()
+        {
+            Gl.ClearColor(System.Drawing.Color.Black);
+            Gl.Enable(EnableCap.DepthTest);
+
+            Gl.Enable(EnableCap.FramebufferSrgb);
+            Gl.Enable(EnableCap.Blend);
+            Gl.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
+
+
+            Gl.Enable(EnableCap.TextureCubeMapSeamless);
+
+            Gl.Enable(EnableCap.TextureCubeMapSeamless);
+
+            Gl.Enable(EnableCap.Multisample);
         }
     }
 }
